@@ -9,6 +9,7 @@
 // 3回目の勝利です。
 // $_SESSIONの挙動やswitch文については調べてみてください。
 
+session_start();
 
 if (! isset($_SESSION['result'])) {
     $_SESSION['result'] = 0;
@@ -25,6 +26,7 @@ class Player
                 break;
             case 2:
                 $janken = 'チョキ';
+                break;
             case 3:
                 $janken = 'パー';
                 break;
@@ -35,7 +37,7 @@ class Player
     }
 }
 
-class Me
+class Me extends Player
 {
     private $name;
     private $choice;
@@ -57,9 +59,10 @@ class Me
     }
 }
 
-class Enemy
+class Enemy extends Player
 {
-    private $choice;
+    private int $choice;
+    
     public function __construct()
     {
         $this->choice = random_int(1, 3);
@@ -73,74 +76,60 @@ class Enemy
 
 class Battle
 {
-    private $first;
-    private $second;
-    public function __construct(Me $me, Enemy $enemy)
+    private string $first;
+    private string $second;
+
+    public function __construct($firstChoice, $secondChoice)
     {
-        $this->first  = $me->getChoice();
-        $this->second = $enemy->getChoice();
+        $this->first  = $firstChoice;
+        $this->second = $secondChoice;
     }
 
-    private function judge(): int
+    private function judge(): string
     {
         if ($this->first === $this->second) {
             return '引き分け';
         }
 
-        if ($this->first === 'グー' && $this->second === 'チョキ') {
-            return '勝ち';
-        }
+        $win = [
+            'グー' => 'チョキ',
+            'チョキ' => 'パー',
+            'パー' => 'グー',
+        ];
 
-        if ($this->first === 'グー' && $this->second === 'パー') {
-            return '負け';
-        }
-
-        if ($this->first === 'チョキ' && $this->second === 'グー') {
-            return '負け';
-        }
-
-        if ($this->first === 'チョキ' && $this->second === 'パー') {
-            return '勝ち';
-        }
-
-        if ($this->first === 'パー' && $this->second === 'グー') {
-            return '勝ち';
-        }
-
-        if ($this->first === 'パー' && $this->second === 'チョキ') {
-            return '負け';
-        }
+        return $win[$this->first] === $this->second ? '勝ち' : '負け';
     }
 
-    private function countVictories()
+    public function countVictories(): void
     {
         if ($this->judge() === '勝ち') {
-            return $_SESSION['result'] += 1;
+            $_SESSION['result'] += 1;
         }
     }
 
-    public function getVitories()
+    public function getVitories(): int
     {
         return $_SESSION['result'];
     }
 
-    public function showResult()
+    public function showResult(): string
     {
         return $this->judge();
     }
 }
 
 if (! empty($_POST)) {
-    $me    = new Me($_POST['last_name'], $_POST['first_name'], $_POST['choice'], $_POST['choice']);
+    $me = new Me($_POST['last_name'], $_POST['first_name'], (int) $_POST['choice']);
     $enemy = new Enemy();
-    echo $me->getName().'は'.$me->getChoice().'を出しました。';
-    echo '<br>'
-    echo '相手は'.$enemy->getChoice().'を出しました。';
-    echo '<br>';
-    $battle = new Battle($me, $enemy);
-    echo '勝敗は'.$battle->showResult().'です。';
-    if ($battle->showResult() === '勝ち') {
 
+    echo $me->getName().'は'.$me->getChoice().'を出しました。'."<br />";
+    echo '相手は'.$enemy->getChoice().'を出しました。'."<br />";
+
+    $battle = new Battle($me->getChoice(), $enemy->getChoice());
+    echo '勝敗は'.$battle->showResult().'です。';
+
+    if ($battle->showResult() === '勝ち') {
+        $battle->countVictories();
         echo '<br>';
         echo $battle->getVitories().'回目の勝利です。';
     }
@@ -155,16 +144,16 @@ if (! empty($_POST)) {
 </head>
 <body>
     <section>
-    <form action='./lesson3.php'>
-        <label>姓</label>
-        <input type="text" name="last_name" value="<?php echo '山田' ?>" />
-        <label>名</label>
-        <input type="text" name="first_name" value="<?php echo '太郎' ?>" />
-        <select name='choice'>
-            <option value=0 >--</option>
-            <option value=1 >グー</option>
-            <option value=2 >チョキ</option>
-            <option value=3 >パー</option>
+    <form action="./lesson3.php" method="POST">
+        <label for="last_name">姓</label>
+        <input type="text" name="last_name" value="山田" />
+        <label for="first_name">名</label>
+        <input type="text" name="first_name" value="太郎" />
+        <select name="choice" required>
+            <option value="0" >--</option>
+            <option value="1" >グー</option>
+            <option value="2" >チョキ</option>
+            <option value="3" >パー</option>
         </select>
         <input type="submit" value="送信する"/>
     </form>
